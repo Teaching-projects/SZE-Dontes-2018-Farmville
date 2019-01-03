@@ -11,7 +11,6 @@ param siloDistance{Acres};
 param availablePlantingTime;
 param transportationPrice;
 param money;
-param M := 100;
 
 var planting{Acres, Crops, Workers} binary;
 

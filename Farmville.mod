@@ -11,45 +11,40 @@ param siloDistance{Acres};
 param availablePlantingTime;
 param transportationPrice;
 param money;
+param M := 100;
 
-var planting{Acres, Crops} binary;
-var plantingby{Acres, Workers} binary;
+var planting{Acres, Crops, Workers} binary;
 
-s.t. OneAcreOneCrop{a in Acres}:
-	sum{c in Crops} planting [a, c] <= 1;
-
-s.t. IfPlantingThenSomeoneHasToWork{a in Acres}:
-	sum{c in Crops} planting[a, c] = sum{w in Workers} plantingby[a, w];
+s.t. OneAcreOneCropOneWorker{a in Acres}:
+	sum{c in Crops, w in Workers} planting [a, c, w] <= 1;
 
 s.t. PlantingTime:
-	sum{a in Acres, c in Crops, w in Workers}(plantingTime[c, w] - 100 * (2 - planting[a, c] - plantingby[a, w])) <= availablePlantingTime;
+	sum{a in Acres, c in Crops, w in Workers} planting[a, c, w] * plantingTime[c, w] <= availablePlantingTime;
 
 s.t. CantBuyMoreThanWeHave:
-	sum{a in Acres, c in Crops} buyprice[c] * planting[a, c] <= money;
+	sum{a in Acres, c in Crops, w in Workers} buyprice[c] * planting[a, c, w] <= money;
 
 maximize Profit:
-	sum{a in Acres, c in Crops} sellprice[c] * planting[a, c]
+	sum{a in Acres, c in Crops, w in Workers} sellprice[c] * planting[a, c, w]
 	-
-	sum{a in Acres, c in Crops} buyprice[c] * planting[a, c]
+	sum{a in Acres, c in Crops, w in Workers} buyprice[c] * planting[a, c, w]
 	-
-	(sum{a in Acres, c in Crops} siloDistance[a] * harvestWeight[c] * transportationPrice * planting[a, c]);
+	(sum{a in Acres, c in Crops, w in Workers} siloDistance[a] * harvestWeight[c] * transportationPrice * planting[a, c, w]);
 
 solve;
 
 for{a in Acres}{
 	printf"%d acres:\n", a;
-	for{c in Crops: planting[a, c] != 0}{
-		printf"\t o Crop: %s\n\t o Buying Price: %d\n", c, buyprice[c];
-		for{w in Workers: plantingby[a, w] != 0}{
-			printf"\t o Worker: %s\n", w;
-			printf"\t o Planting Time: %.1f\n", plantingTime[c, w];
-		}
+	for{c in Crops, w in Workers: planting[a, c, w] != 0}{
+		printf"\t o Crop: %s\n\t o Worker: %s\n", c, w;
+		printf"\t o Planting Time: %.1f\n", plantingTime[c, w];
+		printf"\t o Buying Price: %d\n", buyprice[c];
 		printf"\t o Selling Price: %d\n\t o Transportation Price: %d\n", sellprice[c], (transportationPrice * harvestWeight[c] * siloDistance[a]);
 		printf"\t o Profit:%d\n", (sellprice[c] - (transportationPrice * harvestWeight[c] * siloDistance[a] + buyprice[c]));
 	}
 }
 
-	printf"Total planting time: %d Days\n",sum{a in Acres, c in Crops, w in Workers} plantingTime[c, w] * plantingby[a, w] * planting[a, c];
+	printf"Total planting time: %d Days\n",sum{a in Acres, c in Crops, w in Workers} plantingTime[c, w] * planting[a, c, w];
 
 
 data;
@@ -114,5 +109,5 @@ param siloDistance :=
 ;
 
 param money := 2000;
-param availablePlantingTime := 35;
+param availablePlantingTime := 40;
 param transportationPrice := 0.15;
